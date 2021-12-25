@@ -8,6 +8,9 @@ mod tree;
 #[structopt(name = "Christmas Tree Mapper", about = "A thing that maps christmas trees")]
 struct Opt {
     tree: String,
+
+    #[structopt(short = "r", long = "rpm", default_value = "5")]
+    rpm: i32,
 }
 
 #[macroquad::main("Merry Chrysler")]
@@ -17,6 +20,10 @@ async fn main() {
     // TODO better error handling
     let tree = tree::import_tree(opts.tree.as_str()).expect("Could not import tree!");
 
+    // Pre-calculate rotational velocity of scene
+    let rot_vel: f32 = std::f32::consts::PI * 2. * (opts.rpm as f32 / 60.);
+
+    // Prep rotation
     let mut prev_frame_time = Instant::now();
     let mut theta: f32 = 0.;
 
@@ -24,27 +31,25 @@ async fn main() {
         // Set up basic scene
         clear_background(GRAY);
 
-        // Set up camera
-        // TODO rotate camera
         let frame_time = Instant::now();
         let delta = frame_time - prev_frame_time;
-        prev_frame_time = frame_time; // update time
+        prev_frame_time = frame_time; // update previous frame time
 
-        // Update camera angle
-        theta += (delta.as_millis() as f32) / 1000. * (std::f32::consts::PI / 2.);
+        // Set up camera
+        theta += (delta.as_millis() as f32) / 1000. * rot_vel; // Update camera angle
         set_camera(&Camera3D {
-            position: vec3(theta.sin() * 3., theta.cos() * 3., 1.),
-            target: vec3(0., 0., 1.),
+            position: vec3(theta.sin() * 4., theta.cos() * 4., 3.),
+            target: vec3(0., 0., 1.5),
             up: vec3(0., 0., 1.),
             ..Default::default()
         });
 
+        // Draw pixels
         for pixel in &tree {
             draw_sphere(vec3(pixel.x, pixel.y, pixel.z), 0.01, None, GREEN);
         }
-        //draw_sphere(vec3(0., 0., 1.), 0.25, None, GREEN);
 
-        //set_default_camera();
+        set_default_camera();
         next_frame().await;
 
     }
