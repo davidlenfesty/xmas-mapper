@@ -1,11 +1,15 @@
-use structopt::StructOpt;
 use macroquad::prelude::*;
 use std::time::Instant;
+use structopt::StructOpt;
 
+mod export;
 mod tree;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "Christmas Tree Mapper", about = "A thing that maps christmas trees")]
+#[structopt(
+    name = "Christmas Tree Mapper",
+    about = "A thing that maps christmas trees"
+)]
 struct Opt {
     tree: String,
 
@@ -51,6 +55,5 @@ async fn main() {
 
         set_default_camera();
         next_frame().await;
-
     }
 }

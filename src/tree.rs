@@ -24,7 +24,7 @@ pub fn import_tree(path: &str) -> std::io::Result<Vec<Pixel>> {
         // TODO make this not bad
         tree = String::from(&tree[3..tree.len()]);
     }
-    
+
     let mut pixels = Vec::new();
     for line in tree.lines() {
         let mut pix = line.split(',');
@@ -52,9 +52,7 @@ pub fn import_tree(path: &str) -> std::io::Result<Vec<Pixel>> {
             }
         };
 
-        pixels.push(Pixel {
-            x, y, z
-        });
+        pixels.push(Pixel { x, y, z });
     }
 
     Ok(pixels)
