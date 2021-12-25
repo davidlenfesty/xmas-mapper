@@ -1,4 +1,5 @@
 use macroquad::prelude::*;
+use std::collections::HashMap;
 use std::time::Instant;
 use structopt::StructOpt;
 
@@ -27,6 +28,9 @@ enum Command {
     Export {
         #[structopt(flatten)]
         common: CommonFlags,
+
+        #[structopt(long = "max-frames", default_value = "1000")]
+        max_frames: usize,
     },
 }
 
@@ -40,6 +44,10 @@ struct CommonFlags {
 
     #[structopt(short, long, default_value = "30")]
     fps: u32,
+
+    /// Extra arguments to pass into pattern. Semicolon-separated key=value pairs.
+    #[structopt(long = "pattern-args")]
+    pattern_args: Option<String>,
 }
 
 // TODO assure pixels/frame line up
@@ -53,6 +61,22 @@ fn render_frame(tree: &Vec<tree::Pixel>, frame: &Vec<Color>) {
     }
 }
 
+fn parse_extra_args(args: Option<String>) -> HashMap<String, String> {
+    if let Some(args) = args {
+        let mut map = HashMap::new();
+        for arg in args.split(';') {
+            let mut kv = arg.split('=');
+            let key = String::from(kv.next().unwrap());
+            let val = String::from(kv.next().unwrap());
+            map.insert(key, val);
+        }
+
+        map
+    } else {
+        HashMap::new()
+    }
+}
+
 #[macroquad::main("Merry Chrysler")]
 async fn main() {
     let opts = Opt::from_args();
@@ -60,7 +84,10 @@ async fn main() {
     // Pre-calculate rotational velocity of scene
     let flags = match opts.command {
         Command::View { ref common } => common,
-        Command::Export { ref common } => common,
+        Command::Export {
+            ref common,
+            max_frames: _,
+        } => common,
     };
 
     // TODO better error handling
@@ -70,16 +97,18 @@ async fn main() {
     // Too lazy to do fixed-point math
     let frame_time_ms: u32 = (1. / flags.fps as f32 * 1000.) as u32;
 
+    let extra_args = parse_extra_args(flags.pattern_args.clone());
+
     // Prep rotation
     let mut prev_frame_time = Instant::now();
     let mut theta: f32 = 0.;
 
     // Prep pattern
-    let mut pattern = patterns::rainbow::Rainbow::from_tree(&tree);
+    let mut pattern = patterns::rainbow::Rainbow::from_tree(&tree, &extra_args);
 
     match opts.command {
-        Command::Export { common: _ } => {
-            export::export_pattern(&tree, &mut pattern, 1000, "thing.csv").unwrap();
+        Command::Export { common: _, max_frames } => {
+            export::export_pattern(&tree, &mut pattern, max_frames, "thing.csv").unwrap();
             return;
         }
         _ => (),
@@ -103,7 +132,7 @@ async fn main() {
             current_frame = match pattern.next_frame() {
                 Some(frame) => frame,
                 None => {
-                    pattern = patterns::rainbow::Rainbow::from_tree(&tree);
+                    pattern = patterns::rainbow::Rainbow::from_tree(&tree, &extra_args);
                     pattern.next_frame().unwrap()
                 }
             }

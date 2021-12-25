@@ -1,17 +1,31 @@
 use super::Pattern;
 use crate::tree::Pixel;
 use macroquad::color::Color;
+use std::collections::HashMap;
 
 pub struct Rainbow {
     phase: f32,
+    // Constant values
+    angular_vel: f32,
     len: usize,
+    num_rainbows: usize,
 }
 
 impl Pattern for Rainbow {
-    fn from_tree(tree: &Vec<Pixel>) -> Self {
+    fn from_tree(tree: &Vec<Pixel>, args: &HashMap<String, String>) -> Self {
+        let angular_vel = match args.get("velocity") {
+            Some(vel) => vel.as_str(),
+            None => "2",
+        };
+        let num_rainbows = match args.get("num_rainbows") {
+            Some(num) => num.as_str(),
+            None => "3",
+        };
         Self {
             phase: 0.,
+            angular_vel: str::parse(angular_vel).unwrap(),
             len: tree.len(),
+            num_rainbows: str::parse(num_rainbows).unwrap(),
         }
     }
 
@@ -20,10 +34,9 @@ impl Pattern for Rainbow {
         let color_wavelen: f32 = 256. * 3.; // phase should go up to this value
         let index_to_phase: f32 = color_wavelen / (self.len as f32);
         // 2 here is the number of rainbows per tree
-        let index_to_phase = index_to_phase * 3.;
+        let index_to_phase = index_to_phase * (self.num_rainbows as f32);
 
-        // TODO figure out this number based on frequency
-        self.phase += 4.;
+        self.phase += self.angular_vel;
         if self.phase > color_wavelen {
             self.phase = 0.;
         }

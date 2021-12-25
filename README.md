@@ -18,9 +18,7 @@ control the view of any tree, and can import any tree described with the GIFT fo
 
 In rough order of priority:
 
-- pattern export to CSV format
 - streamline selection of different patterns
 - customizable view (maybe also mouse-pannable?)
 - export-only mode, find a way to not trigger macroquad
 - generic 3d implementation
-- more generic patterns (find a way to import command-line configuration into pattern config/generation)

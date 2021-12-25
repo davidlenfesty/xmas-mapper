@@ -1,13 +1,14 @@
 use super::Pattern;
 use crate::tree::Pixel;
 use macroquad::color::Color;
+use std::collections::HashMap;
 
 pub struct Green {
     storage: Vec<Color>,
 }
 
 impl Pattern for Green {
-    fn from_tree(tree: &Vec<Pixel>) -> Self {
+    fn from_tree(tree: &Vec<Pixel>, _args: &HashMap<String, String>) -> Self {
         // TODO do the iter way
         let mut storage = Vec::new();
         for _ in tree {
