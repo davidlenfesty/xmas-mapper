@@ -3,7 +3,10 @@ use std::time::Instant;
 use structopt::StructOpt;
 
 mod export;
+mod patterns;
 mod tree;
+
+use patterns::Pattern;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -50,95 +53,14 @@ fn render_frame(tree: &Vec<tree::Pixel>, frame: &Vec<Color>) {
     }
 }
 
-pub trait Pattern {
-    fn from_tree(tree: &Vec<tree::Pixel>) -> Self;
-
-    fn next_frame(&mut self) -> Option<Vec<Color>>;
-}
-
-struct Green {
-    storage: Vec<Color>
-}
-
-impl Pattern for Green {
-    fn from_tree(tree: &Vec<tree::Pixel>) -> Self {
-        // TODO do the iter way
-        let mut storage = Vec::new();
-        for _ in tree {
-            storage.push(Color::from_rgba(0, 255, 0, 255));
-        }
-
-        Self {
-            storage,
-        }
-    }
-
-    fn next_frame(&mut self) -> Option<Vec<Color>> {
-        Some(self.storage.clone())
-    }
-}
-
-struct Rainbow {
-    phase: f32,
-    len: usize,
-}
-
-impl Pattern for Rainbow {
-    fn from_tree(tree: &Vec<tree::Pixel>) -> Self {
-        Self {
-            phase: 0.,
-            len: tree.len(),
-        }
-    }
-
-    fn next_frame(&mut self) -> Option<Vec<Color>> {
-        // What do I want here? 2 rainbows per frame
-        let color_wavelen: f32 = 256. * 3.; // phase should go up to this value
-        let index_to_phase: f32 = color_wavelen / (self.len as f32);
-        // 2 here is the number of rainbows per tree
-        let index_to_phase = index_to_phase * 3.;
-
-        // TODO figure out this number based on frequency
-        self.phase += 4.;
-        if self.phase > color_wavelen {
-            self.phase = 0.;
-        }
-
-        let mut frame = Vec::new();
-        for i in 0..self.len {
-            // TODO figure out how to make n rainbows
-            let phase = ((i as f32) * index_to_phase + self.phase) as usize % (256 * 3 - 1);
-
-            // TODO hold on this is alll wrong
-            let color = if phase < 255 {
-                let phase = phase as u8;
-                Color::from_rgba(255 - phase, phase, 0, 255)
-            } else if phase < (256 * 2 - 1) {
-                let phase = (phase - 255) as u8;
-                Color::from_rgba(0, 255 - phase, phase, 255)
-            } else if phase < (256 * 3 - 1) {
-                let phase = (phase - 511) as u8;
-                Color::from_rgba(phase, 0, 255 - phase, 255)
-            } else {
-                // TODO figure out how to remove this artifact
-                Color::from_rgba(255, 0, 0, 255)
-            };
-
-            frame.push(color);
-        }
-
-        Some(frame)
-    }
-}
-
 #[macroquad::main("Merry Chrysler")]
 async fn main() {
     let opts = Opt::from_args();
 
     // Pre-calculate rotational velocity of scene
     let flags = match opts.command {
-        Command::View{ref common} => common,
-        Command::Export{ref common} => common,
+        Command::View { ref common } => common,
+        Command::Export { ref common } => common,
     };
 
     // TODO better error handling
@@ -153,16 +75,15 @@ async fn main() {
     let mut theta: f32 = 0.;
 
     // Prep pattern
-    let mut pattern = Rainbow::from_tree(&tree);
+    let mut pattern = patterns::rainbow::Rainbow::from_tree(&tree);
 
     match opts.command {
         Command::Export { common: _ } => {
             export::export_pattern(&tree, &mut pattern, 1000, "thing.csv").unwrap();
             return;
-        },
+        }
         _ => (),
     };
-
 
     let mut current_frame = pattern.next_frame().unwrap();
 
@@ -182,9 +103,9 @@ async fn main() {
             current_frame = match pattern.next_frame() {
                 Some(frame) => frame,
                 None => {
-                    pattern = Rainbow::from_tree(&tree);
+                    pattern = patterns::rainbow::Rainbow::from_tree(&tree);
                     pattern.next_frame().unwrap()
-                },
+                }
             }
         }
 

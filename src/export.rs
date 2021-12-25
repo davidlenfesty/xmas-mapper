@@ -3,11 +3,15 @@
 //! Frame data is exported as a CSV in the following form:
 //! FRAME_ID, R_0, G_0, B_0, R_1, G_1, B_1, ...
 
-use crate::Pattern;
+use crate::patterns::Pattern;
 use crate::tree::Pixel;
-use macroquad::color::Color;
 
-pub fn export_pattern<T: Pattern>(tree: &Vec<Pixel>, pattern: &mut T, frame_limit: usize, filename: &str) -> std::io::Result<()> {
+pub fn export_pattern<T: Pattern>(
+    tree: &Vec<Pixel>,
+    pattern: &mut T,
+    frame_limit: usize,
+    filename: &str,
+) -> std::io::Result<()> {
     let mut out = String::new();
 
     // Push out header
