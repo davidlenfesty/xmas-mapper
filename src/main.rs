@@ -11,13 +11,32 @@ mod tree;
     about = "A thing that maps christmas trees"
 )]
 struct Opt {
+    #[structopt(subcommand)]
+    command: Command,
+}
+
+#[derive(Debug, StructOpt)]
+enum Command {
+    View {
+        #[structopt(flatten)]
+        common: CommonFlags,
+    },
+    Export {
+        #[structopt(flatten)]
+        common: CommonFlags,
+    },
+}
+
+#[derive(Debug, StructOpt)]
+struct CommonFlags {
+    #[structopt(short, long, default_value = "data/mattparker_2021.csv")]
     tree: String,
 
-    #[structopt(short = "r", long = "rpm", default_value = "5")]
+    #[structopt(short, long, default_value = "5")]
     rpm: u32,
 
-    #[structopt(short = "f", long = "fps", default_value = "30")]
-    fps: u32
+    #[structopt(short, long, default_value = "30")]
+    fps: u32,
 }
 
 // TODO assure pixels/frame line up
@@ -31,8 +50,10 @@ fn render_frame(tree: &Vec<tree::Pixel>, frame: &Vec<Color>) {
     }
 }
 
-trait Pattern {
+pub trait Pattern {
     fn from_tree(tree: &Vec<tree::Pixel>) -> Self;
+
+    fn next_frame(&mut self) -> Option<Vec<Color>>;
 }
 
 struct Green {
@@ -51,12 +72,8 @@ impl Pattern for Green {
             storage,
         }
     }
-}
 
-impl Iterator for Green {
-    type Item = Vec<Color>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_frame(&mut self) -> Option<Vec<Color>> {
         Some(self.storage.clone())
     }
 }
@@ -73,12 +90,8 @@ impl Pattern for Rainbow {
             len: tree.len(),
         }
     }
-}
 
-impl Iterator for Rainbow {
-    type Item = Vec<Color>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_frame(&mut self) -> Option<Vec<Color>> {
         // What do I want here? 2 rainbows per frame
         let color_wavelen: f32 = 256. * 3.; // phase should go up to this value
         let index_to_phase: f32 = color_wavelen / (self.len as f32);
@@ -122,13 +135,18 @@ impl Iterator for Rainbow {
 async fn main() {
     let opts = Opt::from_args();
 
-    // TODO better error handling
-    let tree = tree::import_tree(opts.tree.as_str()).expect("Could not import tree!");
-
     // Pre-calculate rotational velocity of scene
-    let rot_vel: f32 = std::f32::consts::PI * 2. * (opts.rpm as f32 / 60.);
+    let flags = match opts.command {
+        Command::View{ref common} => common,
+        Command::Export{ref common} => common,
+    };
+
+    // TODO better error handling
+    let tree = tree::import_tree(flags.tree.as_str()).expect("Could not import tree!");
+
+    let rot_vel: f32 = std::f32::consts::PI * 2. * (flags.rpm as f32 / 60.);
     // Too lazy to do fixed-point math
-    let frame_time_ms: u32 = (1. / opts.fps as f32 * 1000.) as u32;
+    let frame_time_ms: u32 = (1. / flags.fps as f32 * 1000.) as u32;
 
     // Prep rotation
     let mut prev_frame_time = Instant::now();
@@ -136,7 +154,17 @@ async fn main() {
 
     // Prep pattern
     let mut pattern = Rainbow::from_tree(&tree);
-    let mut current_frame = pattern.next().unwrap();
+
+    match opts.command {
+        Command::Export { common: _ } => {
+            export::export_pattern(&tree, &mut pattern, 1000, "thing.csv").unwrap();
+            return;
+        },
+        _ => (),
+    };
+
+
+    let mut current_frame = pattern.next_frame().unwrap();
 
     loop {
         // Set up basic scene
@@ -151,11 +179,11 @@ async fn main() {
 
             // Update pattern
             // TODO improve this iteration strategy
-            current_frame = match pattern.next() {
+            current_frame = match pattern.next_frame() {
                 Some(frame) => frame,
                 None => {
                     pattern = Rainbow::from_tree(&tree);
-                    pattern.next().unwrap()
+                    pattern.next_frame().unwrap()
                 },
             }
         }
