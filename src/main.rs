@@ -24,11 +24,23 @@ enum Command {
     View {
         #[structopt(flatten)]
         common: CommonFlags,
+
+        /// RPM to spin model at in view.
+        #[structopt(short, long, default_value = "5")]
+        rpm: u32,
+
+        /// FPS to display pattern at inside of view.
+        #[structopt(short, long, default_value = "30")]
+        fps: u32,
     },
     Export {
+        /// File to write output to
+        output: String,
+
         #[structopt(flatten)]
         common: CommonFlags,
 
+        /// Maximum number of frames of pattern to export.
         #[structopt(long = "max-frames", default_value = "1000")]
         max_frames: usize,
     },
@@ -36,14 +48,9 @@ enum Command {
 
 #[derive(Debug, StructOpt)]
 struct CommonFlags {
+    /// Tree to use as model.
     #[structopt(short, long, default_value = "data/mattparker_2021.csv")]
     tree: String,
-
-    #[structopt(short, long, default_value = "5")]
-    rpm: u32,
-
-    #[structopt(short, long, default_value = "30")]
-    fps: u32,
 
     /// Extra arguments to pass into pattern. Semicolon-separated key=value pairs.
     #[structopt(long = "pattern-args")]
@@ -77,42 +84,21 @@ fn parse_extra_args(args: Option<String>) -> HashMap<String, String> {
     }
 }
 
-#[macroquad::main("Merry Chrysler")]
-async fn main() {
-    let opts = Opt::from_args();
-
+async fn render_loop<T: Pattern>(
+    tree: Vec<tree::Pixel>,
+    mut pattern: T,
+    rpm: u32,
+    fps: u32,
+    args: HashMap<String, String>,
+) {
     // Pre-calculate rotational velocity of scene
-    let flags = match opts.command {
-        Command::View { ref common } => common,
-        Command::Export {
-            ref common,
-            max_frames: _,
-        } => common,
-    };
-
-    // TODO better error handling
-    let tree = tree::import_tree(flags.tree.as_str()).expect("Could not import tree!");
-
-    let rot_vel: f32 = std::f32::consts::PI * 2. * (flags.rpm as f32 / 60.);
+    let rot_vel: f32 = std::f32::consts::PI * 2. * (rpm as f32 / 60.);
     // Too lazy to do fixed-point math
-    let frame_time_ms: u32 = (1. / flags.fps as f32 * 1000.) as u32;
-
-    let extra_args = parse_extra_args(flags.pattern_args.clone());
+    let frame_time_ms: u32 = (1. / fps as f32 * 1000.) as u32;
 
     // Prep rotation
     let mut prev_frame_time = Instant::now();
     let mut theta: f32 = 0.;
-
-    // Prep pattern
-    let mut pattern = patterns::rainbow::Rainbow::from_tree(&tree, &extra_args);
-
-    match opts.command {
-        Command::Export { common: _, max_frames } => {
-            export::export_pattern(&tree, &mut pattern, max_frames, "thing.csv").unwrap();
-            return;
-        }
-        _ => (),
-    };
 
     let mut current_frame = pattern.next_frame().unwrap();
 
@@ -132,7 +118,7 @@ async fn main() {
             current_frame = match pattern.next_frame() {
                 Some(frame) => frame,
                 None => {
-                    pattern = patterns::rainbow::Rainbow::from_tree(&tree, &extra_args);
+                    pattern = T::from_tree(&tree, &args);
                     pattern.next_frame().unwrap()
                 }
             }
@@ -152,5 +138,49 @@ async fn main() {
 
         set_default_camera();
         next_frame().await;
+    }
+}
+
+#[macroquad::main("Merry Chrysler")]
+async fn main() -> std::io::Result<()> {
+    let opts = Opt::from_args();
+
+    let flags = match opts.command {
+        Command::View {
+            ref common,
+            rpm: _,
+            fps: _,
+        } => common,
+        Command::Export {
+            output: _,
+            ref common,
+            max_frames: _,
+        } => common,
+    };
+
+    let tree = tree::import_tree(flags.tree.as_str())?;
+    let extra_args = parse_extra_args(flags.pattern_args.clone());
+
+    // Prep pattern
+    let mut pattern = patterns::rainbow::Rainbow::from_tree(&tree, &extra_args);
+
+    match opts.command {
+        Command::Export {
+            output,
+            common: _,
+            max_frames,
+        } => {
+            export::export_pattern(&tree, &mut pattern, max_frames, output.as_str())?;
+            return Ok(());
+        }
+        Command::View {
+            common: _,
+            rpm,
+            fps,
+        } => {
+            render_loop(tree, pattern, rpm, fps, extra_args).await;
+            Ok(())
+        }
+        _ => Ok(()),
     }
 }
