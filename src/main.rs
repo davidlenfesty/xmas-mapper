@@ -162,6 +162,7 @@ async fn main() -> std::io::Result<()> {
     let extra_args = parse_extra_args(flags.pattern_args.clone());
 
     // Prep pattern
+    // TODO make this dynamic CLI (unfortunately requires dyn stuff I'm not comfortable with yet)
     let mut pattern = patterns::balls::BallPattern::from_tree(&tree, &extra_args);
 
     match opts.command {
@@ -178,8 +179,8 @@ async fn main() -> std::io::Result<()> {
             rpm,
             fps,
         } => {
-            //render_loop(tree, pattern, rpm, fps, extra_args).await;
-            patterns::balls::run_ball_loop(pattern, rpm, fps).await;
+            render_loop(tree, pattern, rpm, fps, extra_args).await;
+            //patterns::balls::run_ball_loop(pattern, rpm, fps).await;
             Ok(())
         }
         _ => Ok(()),

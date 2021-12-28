@@ -185,6 +185,7 @@ impl Pattern for BallPattern {
             let b = random::<f32>();
             // Normalize to 50% intensity
             // TODO parameterize this intensity
+            // FIXME sometimes generates black colour
             let intensity = (r + g + b) / 3.;
             let intensity_ratio = intensity / 0.5;
             let r = (r * intensity_ratio * 255.) as u8;
