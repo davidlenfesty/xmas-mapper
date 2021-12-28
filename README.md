@@ -13,6 +13,7 @@ control the view of any tree, and can import any tree described with the GIFT fo
 
 - `Green`: Lights up all lights as green, simply used to implement initial pattern format.
 - `Rainbow`: Chases rainbows through the lights in a linear fashion, no attention paid to layout.
+- `Balls`: places balls randomly within the tree's bounding box and bounces them off each other, preserving momentum.
 
 ## General TODO
 
@@ -21,4 +22,3 @@ In rough order of priority:
 - streamline selection of different patterns
 - customizable view (maybe also mouse-pannable?)
 - export-only mode, find a way to not trigger macroquad
-- generic 3d implementation
