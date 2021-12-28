@@ -9,3 +9,6 @@ authors = ["David Lenfesty <lenfesty@ualberta.ca>"]
 [dependencies]
 structopt = "0.3"
 macroquad = "0.3"
+rand = "0.8"
+rand_distr = "0.4"
+itertools = "0.10"

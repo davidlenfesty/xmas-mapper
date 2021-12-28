@@ -104,7 +104,7 @@ async fn render_loop<T: Pattern>(
 
     loop {
         // Set up basic scene
-        clear_background(GRAY);
+        clear_background(DARKGRAY);
 
         let frame_time = Instant::now();
         let delta = frame_time - prev_frame_time;
@@ -162,7 +162,7 @@ async fn main() -> std::io::Result<()> {
     let extra_args = parse_extra_args(flags.pattern_args.clone());
 
     // Prep pattern
-    let mut pattern = patterns::rainbow::Rainbow::from_tree(&tree, &extra_args);
+    let mut pattern = patterns::balls::BallPattern::from_tree(&tree, &extra_args);
 
     match opts.command {
         Command::Export {
@@ -178,7 +178,8 @@ async fn main() -> std::io::Result<()> {
             rpm,
             fps,
         } => {
-            render_loop(tree, pattern, rpm, fps, extra_args).await;
+            //render_loop(tree, pattern, rpm, fps, extra_args).await;
+            patterns::balls::run_ball_loop(pattern, rpm, fps).await;
             Ok(())
         }
         _ => Ok(()),

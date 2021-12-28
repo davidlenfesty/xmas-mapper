@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use macroquad::color::Color;
 
+pub mod balls;
 pub mod green;
 pub mod rainbow;
 

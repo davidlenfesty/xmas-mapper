@@ -9,11 +9,9 @@
 
 use std::io::{Error, ErrorKind};
 
-pub struct Pixel {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
+use macroquad::math::{vec3, Vec3};
+
+pub type Pixel = Vec3;
 
 pub fn import_tree(path: &str) -> std::io::Result<Vec<Pixel>> {
     let mut tree = std::fs::read_to_string(path)?;
@@ -52,7 +50,7 @@ pub fn import_tree(path: &str) -> std::io::Result<Vec<Pixel>> {
             }
         };
 
-        pixels.push(Pixel { x, y, z });
+        pixels.push(vec3(x, y, z));
     }
 
     Ok(pixels)
